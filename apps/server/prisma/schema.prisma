@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships   GroupMembership[]
+  expensesPaid  Expense[]        @relation("ExpensePaidBy")
+  expenseSplits ExpenseSplit[]
+  settlements   Settlement[]     @relation("SettlementFrom")
+  settlementsTo Settlement[]     @relation("SettlementTo")
+}
+
+model Group {
+  id              String   @id @default(cuid())
+  name            String
+  defaultCurrency String   @default("INR")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships  GroupMembership[]
+  expenses     Expense[]
+  settlements  Settlement[]
+  importSessions ImportSession[]
+}
+
+model GroupMembership {
+  id        String    @id @default(cuid())
+  groupId   String
+  userId    String
+  // displayName allows non-user members from CSV (before they register)
+  displayName String
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  groupId     String
+  description String
+  amount      Float
+  currency    String    @default("INR")
+  // fxRate: how many INR = 1 unit of currency (1 for INR, ~83 for USD at time of expense)
+  fxRate      Float     @default(1)
+  amountInr   Float     // pre-computed: amount * fxRate
+  paidById    String?
+  // paidByName: display name for non-registered payers (from CSV)
+  paidByName  String
+  date        DateTime
+  splitType   String    // 'equal' | 'unequal' | 'percentage' | 'share'
+  notes       String?
+  isRefund    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy  User?        @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  splits  ExpenseSplit[]
+
+  @@index([groupId])
+  @@index([date])
+}
+
+model ExpenseSplit {
+  id          String  @id @default(cuid())
+  expenseId   String
+  memberId    String?
+  memberName  String
+  amount      Float   // absolute amount this person owes for this expense
+  shareValue  Float?  // for 'share' split type
+  percentage  Float?  // for 'percentage' split type
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member  User?   @relation(fields: [memberId], references: [id])
+
+  @@index([expenseId])
+}
+
+model Settlement {
+  id           String   @id @default(cuid())
+  groupId      String
+  fromMemberId String?
+  fromMemberName String
+  toMemberId   String?
+  toMemberName String
+  amount       Float
+  currency     String   @default("INR")
+  fxRate       Float    @default(1)
+  amountInr    Float
+  date         DateTime
+  note         String?
+  createdAt    DateTime @default(now())
+
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromMember User?  @relation("SettlementFrom", fields: [fromMemberId], references: [id])
+  toMember   User?  @relation("SettlementTo", fields: [toMemberId], references: [id])
+
+  @@index([groupId])
+}
+
+model ImportSession {
+  id        String   @id @default(cuid())
+  groupId   String
+  filename  String
+  status    String   @default("PENDING") // PENDING | COMMITTED | CANCELLED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group     Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  anomalies ImportAnomaly[]
+}
+
+model ImportAnomaly {
+  id              String    @id @default(cuid())
+  importSessionId String
+  rowIndex        Int
+  anomalyType     String
+  message         String
+  resolution      String    @default("PENDING")
+  resolvedAt      DateTime?
+  rowData         Json      // stores the raw CSV row
+
+  session ImportSession @relation(fields: [importSessionId], references: [id], onDelete: Cascade)
+}
