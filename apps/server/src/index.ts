@@ -46,6 +46,12 @@ app.get('/api/health', (_req, res) => {
 // ─── Error handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// Vercel serverless functions don't need app.listen() — they just need the app exported.
+// We only listen if running locally.
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
