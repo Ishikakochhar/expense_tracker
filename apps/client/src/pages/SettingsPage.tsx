@@ -197,9 +197,10 @@ export function SettingsPage() {
   const handleExportCSV = () => {
     const token = useAuthStore.getState().token;
     const link = document.createElement('a');
-    link.href = `/api/auth/export`;
+    const baseUrl = import.meta.env.VITE_API_URL || '';
+    link.href = `${baseUrl}/api/auth/export`;
     // Trigger download with Bearer token via fetch
-    fetch('/api/auth/export', {
+    fetch(`${baseUrl}/api/auth/export`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.blob())
