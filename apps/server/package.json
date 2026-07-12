@@ -10,7 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx src/db/seed.ts",
-    "vercel-build": "prisma generate"
+    "vercel-build": "cd ../../packages/shared && npm run build && cd ../../apps/server && prisma generate"
   },
   "dependencies": {
     "@expense-tracker/shared": "*",
