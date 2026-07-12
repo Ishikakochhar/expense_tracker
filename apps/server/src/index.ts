@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3001;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors({
+  // CLIENT_URL is injected by Vercel for production CORS
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
