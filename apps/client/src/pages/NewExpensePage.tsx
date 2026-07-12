@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 
 type SplitType = 'equal' | 'unequal' | 'percentage' | 'share';
@@ -57,6 +57,8 @@ export function NewExpensePage() {
     mutationFn: (payload: object) => api.post('/expenses', payload).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses', groupId] });
+      qc.invalidateQueries({ queryKey: ['balances'] });
+      qc.invalidateQueries({ queryKey: ['activity'] });
       toast.success('Expense added!');
       navigate(`/groups/${groupId}`);
     },
@@ -97,26 +99,29 @@ export function NewExpensePage() {
   const splitTypeOptions: SplitType[] = ['equal', 'unequal', 'percentage', 'share'];
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
+    <div className="max-w-2xl mx-auto animate-fade-in space-y-6">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-muted hover:text-white transition-colors mb-6 text-sm"
+        className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-label-sm"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        Back to Group
       </button>
 
-      <h1 className="page-title mb-6">Add Expense</h1>
+      <div>
+        <h1 className="font-display-lg text-3xl md:text-4xl text-primary leading-tight">Add Expense</h1>
+        <p className="font-body-lg text-on-surface-variant mt-1">Log a new shared expense</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic info */}
-        <div className="card p-6 space-y-4">
-          <h2 className="section-title">Expense Details</h2>
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-ambient p-6 sm:p-8 space-y-5">
+          <h2 className="font-headline-md text-2xl text-primary mb-2">Expense Details</h2>
 
           <div>
-            <label className="label">Description</label>
+            <label className="block font-label-sm text-primary mb-1">Description</label>
             <input
-              className="input"
+              className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
               placeholder="e.g. Groceries, Rent, Electricity"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -124,11 +129,11 @@ export function NewExpensePage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="label">Amount</label>
+              <label className="block font-label-sm text-primary mb-1">Amount</label>
               <input
-                className="input"
+                className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
                 type="number"
                 step="0.01"
                 min="0"
@@ -139,9 +144,9 @@ export function NewExpensePage() {
               />
             </div>
             <div>
-              <label className="label">Currency</label>
+              <label className="block font-label-sm text-primary mb-1">Currency</label>
               <select
-                className="input"
+                className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
                 value={form.currency}
                 onChange={(e) => setForm({ ...form, currency: e.target.value })}
               >
@@ -153,9 +158,9 @@ export function NewExpensePage() {
 
           {form.currency === 'USD' && (
             <div>
-              <label className="label">FX Rate (1 USD = ? INR)</label>
+              <label className="block font-label-sm text-primary mb-1">FX Rate (1 USD = ? INR)</label>
               <input
-                className="input"
+                className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
                 type="number"
                 step="0.01"
                 value={form.fxRate}
@@ -164,11 +169,11 @@ export function NewExpensePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="label">Paid by</label>
+              <label className="block font-label-sm text-primary mb-1">Paid by</label>
               <select
-                className="input"
+                className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
                 value={form.paidByName}
                 onChange={(e) => setForm({ ...form, paidByName: e.target.value })}
                 required
@@ -182,9 +187,9 @@ export function NewExpensePage() {
               </select>
             </div>
             <div>
-              <label className="label">Date</label>
+              <label className="block font-label-sm text-primary mb-1">Date</label>
               <input
-                className="input"
+                className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
@@ -194,9 +199,9 @@ export function NewExpensePage() {
           </div>
 
           <div>
-            <label className="label">Notes (optional)</label>
+            <label className="block font-label-sm text-primary mb-1">Notes (optional)</label>
             <input
-              className="input"
+              className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
               placeholder="Any additional context..."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -205,19 +210,19 @@ export function NewExpensePage() {
         </div>
 
         {/* Split configuration */}
-        <div className="card p-6 space-y-4">
-          <h2 className="section-title">Split</h2>
+        <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-ambient p-6 sm:p-8 space-y-6">
+          <h2 className="font-headline-md text-2xl text-primary">Split</h2>
 
           {/* Split type selector */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {splitTypeOptions.map((type) => (
               <button
                 key={type}
                 type="button"
-                className={`py-2 px-3 rounded-xl text-sm font-medium transition-all border ${
+                className={`py-3 px-4 rounded-xl font-label-sm transition-all border ${
                   form.splitType === type
-                    ? 'bg-brand-600 border-brand-500 text-white'
-                    : 'bg-surface-elevated border-surface-border text-zinc-400 hover:text-white'
+                    ? 'bg-primary-container border-primary-container text-on-primary-container font-bold shadow-sm'
+                    : 'bg-surface border-outline-variant/30 text-on-surface-variant hover:text-primary hover:bg-surface-container'
                 }`}
                 onClick={() => setForm({ ...form, splitType: type })}
               >
@@ -227,22 +232,22 @@ export function NewExpensePage() {
           </div>
 
           {/* Member selection */}
-          <div>
-            <label className="label">Split with</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="pt-2">
+            <label className="block font-label-sm text-primary mb-3">Split with</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {activeMembers.map((m: any) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => toggleMember(m.displayName)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-label-sm transition-all border ${
                     selectedMembers.includes(m.displayName)
-                      ? 'bg-brand-600/20 border-brand-600/50 text-brand-300'
-                      : 'bg-surface-elevated border-surface-border text-zinc-400 hover:text-white'
+                      ? 'bg-secondary-container border-secondary-container text-on-secondary-container shadow-sm'
+                      : 'bg-surface border-outline-variant/30 text-on-surface-variant hover:text-primary hover:bg-surface-container'
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                    {m.displayName.charAt(0)}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${selectedMembers.includes(m.displayName) ? 'bg-surface-container-lowest text-on-secondary-container' : 'bg-surface-dim text-on-surface-variant'}`}>
+                    {m.displayName.charAt(0).toUpperCase()}
                   </div>
                   {m.displayName}
                 </button>
@@ -252,43 +257,45 @@ export function NewExpensePage() {
 
           {/* Per-member split inputs (for non-equal types) */}
           {form.splitType !== 'equal' && splits.length > 0 && (
-            <div className="space-y-2">
-              <label className="label">
+            <div className="space-y-3 pt-4 border-t border-outline-variant/30">
+              <label className="block font-label-sm text-primary mb-2">
                 {form.splitType === 'unequal' && 'Amount per person (INR)'}
                 {form.splitType === 'percentage' && 'Percentage per person'}
                 {form.splitType === 'share' && 'Shares per person'}
               </label>
               {splits.map((split, i) => (
-                <div key={split.memberName} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                    {split.memberName.charAt(0)}
+                <div key={split.memberName} className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-headline-md font-bold text-on-primary-container flex-shrink-0">
+                    {split.memberName.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm text-zinc-300 w-24 truncate">{split.memberName}</span>
-                  <input
-                    className="input flex-1"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder={form.splitType === 'share' ? '1' : '0'}
-                    value={
-                      form.splitType === 'unequal'
-                        ? split.amount || ''
-                        : form.splitType === 'percentage'
-                        ? split.percentage || ''
-                        : split.shareValue || ''
-                    }
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      const field =
+                  <span className="font-body-md text-primary w-24 truncate">{split.memberName}</span>
+                  <div className="flex-1 relative flex items-center">
+                    <input
+                      className="w-full bg-surface text-on-surface border border-outline-variant/50 rounded-lg px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all font-body-md"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={form.splitType === 'share' ? '1' : '0'}
+                      value={
                         form.splitType === 'unequal'
-                          ? 'amount'
+                          ? split.amount || ''
                           : form.splitType === 'percentage'
-                          ? 'percentage'
-                          : 'shareValue';
-                      updateSplit(i, field as keyof SplitEntry, val);
-                    }}
-                  />
-                  {form.splitType === 'percentage' && <span className="text-zinc-500">%</span>}
+                          ? split.percentage || ''
+                          : split.shareValue || ''
+                      }
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const field =
+                          form.splitType === 'unequal'
+                            ? 'amount'
+                            : form.splitType === 'percentage'
+                            ? 'percentage'
+                            : 'shareValue';
+                        updateSplit(i, field as keyof SplitEntry, val);
+                      }}
+                    />
+                    {form.splitType === 'percentage' && <span className="absolute right-4 font-data-mono text-on-surface-variant">%</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -296,7 +303,7 @@ export function NewExpensePage() {
         </div>
 
         {/* Submit */}
-        <button type="submit" className="btn-primary w-full" disabled={createMutation.isPending}>
+        <button type="submit" className="w-full py-4 px-6 rounded-full bg-primary text-on-primary font-bold font-body-lg hover:opacity-90 transition-all shadow-ambient mt-2" disabled={createMutation.isPending}>
           {createMutation.isPending ? 'Adding...' : 'Add Expense'}
         </button>
       </form>

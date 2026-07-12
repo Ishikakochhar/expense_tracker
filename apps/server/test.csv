@@ -1,0 +1,2 @@
+date,description,amount,currency,paid_by,split_type,split_with,split_details,notes
+2026-05-01,Test,100,INR,User,equal,User,,

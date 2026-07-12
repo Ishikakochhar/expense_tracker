@@ -8,8 +8,11 @@ import { GroupsPage } from '@/pages/GroupsPage';
 import { GroupDetailPage } from '@/pages/GroupDetailPage';
 import { NewExpensePage } from '@/pages/NewExpensePage';
 import { ImportPage } from '@/pages/ImportPage';
+import { ActivityPage } from '@/pages/ActivityPage';
 import { SettlePage } from '@/pages/SettlePage';
 import { BalancesPage } from '@/pages/BalancesPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { JoinGroupPage } from '@/pages/JoinGroupPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -23,41 +26,46 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
+    <>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
 
-      <Route
-        element={
-          <PrivateRoute>
-            <AppLayout />
-          </PrivateRoute>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="groups" element={<GroupsPage />} />
-        <Route path="groups/:groupId" element={<GroupDetailPage />} />
-        <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
-        <Route path="groups/:groupId/import" element={<ImportPage />} />
-        <Route path="groups/:groupId/settle" element={<SettlePage />} />
-        <Route path="groups/:groupId/balances" element={<BalancesPage />} />
-      </Route>
+        <Route
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="activity" element={<ActivityPage />} />
+          <Route path="groups" element={<GroupsPage />} />
+          <Route path="join" element={<JoinGroupPage />} />
+          <Route path="groups/:groupId" element={<GroupDetailPage />} />
+          <Route path="groups/:groupId/expenses/new" element={<NewExpensePage />} />
+          <Route path="groups/:groupId/import" element={<ImportPage />} />
+          <Route path="groups/:groupId/settle" element={<SettlePage />} />
+          <Route path="groups/:groupId/balances" element={<BalancesPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

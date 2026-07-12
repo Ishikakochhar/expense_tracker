@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,110 +7,133 @@
 
 @layer base {
   body {
-    @apply bg-surface text-white font-sans antialiased;
-    background-image: radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
-    min-height: 100vh;
+    background-color: theme('colors.surface');
+    color: theme('colors.on-surface');
+    @apply antialiased min-h-screen relative;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  * {
-    @apply border-surface-border;
+  select {
+    @apply appearance-none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234a6860' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
   }
 
-  ::-webkit-scrollbar {
-    @apply w-1.5;
+  /* ── Dark mode overrides ──────────────────────────────────────────────── */
+  /* When `.dark` is on <html>, override the Hearth colour tokens to a
+     deep-forest dark palette that still respects the brand language.      */
+  html.dark {
+    --color-surface:                   #121816;
+    --color-surface-dim:               #0a1210;
+    --color-surface-bright:            #1a2d28;
+    --color-surface-container-lowest:  #242e2b;
+    --color-surface-container-low:     #16251f;
+    --color-surface-container:         #1c2e28;
+    --color-surface-container-high:    #223630;
+    --color-surface-container-highest: #283e38;
+    --color-on-surface:                #d8e5e0;
+    --color-on-surface-variant:        #9eb5af;
+    --color-primary:                   #a0c8be;
+    --color-on-primary:                #0b1f1c;
+    --color-primary-container:         #1f3a34;
+    --color-on-primary-container:      #8fb8ae;
+    --color-secondary:                 #ffb598;
+    --color-on-secondary:              #3a1200;
+    --color-secondary-container:       #5a2710;
+    --color-on-secondary-container:    #ffb598;
+    --color-outline:                   #4a6860;
+    --color-outline-variant:           #2e4a44;
+    --color-error:                     #ffb4ab;
+    --color-on-error:                  #690005;
+    --color-error-container:           #93000a;
+    --color-on-error-container:        #ffdad6;
+    --color-inverse-surface:           #d8e5e0;
+    --color-inverse-on-surface:        #0f1a18;
+    --color-background:                #0f1a18;
+    --color-on-background:             #d8e5e0;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-surface;
+  html.dark body {
+    background-color: var(--color-surface, #0f1a18);
+    color: var(--color-on-surface, #d8e5e0);
   }
 
-  ::-webkit-scrollbar-thumb {
-    @apply bg-surface-border rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-brand-600;
+  /* Remap every colour utility in dark mode via CSS custom properties */
+  html.dark * {
+    --tw-surface: var(--color-surface);
   }
 }
 
-@layer components {
-  .card {
-    @apply bg-surface-card border border-surface-border rounded-2xl;
+/* ── Dark mode CSS-variable-based utility overrides ──────────────────────── */
+/* Tailwind's JIT won't auto-generate dark variants for custom colours, so we
+   manually override the most-used bg/text/border combos.                    */
+html.dark .bg-surface                    { background-color: var(--color-surface) !important; }
+html.dark .bg-surface-dim                { background-color: var(--color-surface-dim) !important; }
+html.dark .bg-surface-bright             { background-color: var(--color-surface-bright) !important; }
+html.dark .bg-surface-container-lowest   { background-color: var(--color-surface-container-lowest) !important; }
+html.dark .bg-surface-container-low      { background-color: var(--color-surface-container-low) !important; }
+html.dark .bg-surface-container          { background-color: var(--color-surface-container) !important; }
+html.dark .bg-surface-container-high     { background-color: var(--color-surface-container-high) !important; }
+html.dark .bg-surface-container-highest  { background-color: var(--color-surface-container-highest) !important; }
+html.dark .bg-primary                    { background-color: var(--color-primary) !important; }
+html.dark .bg-primary-container          { background-color: var(--color-primary-container) !important; }
+html.dark .bg-secondary                  { background-color: var(--color-secondary) !important; }
+html.dark .bg-secondary-container        { background-color: var(--color-secondary-container) !important; }
+html.dark .bg-error                      { background-color: var(--color-error) !important; }
+html.dark .bg-error-container\/30        { background-color: rgba(147, 0, 10, 0.3) !important; }
+html.dark .bg-surface-variant            { background-color: var(--color-surface-container) !important; }
+html.dark .bg-inverse-surface\/40        { background-color: rgba(216, 229, 224, 0.15) !important; }
+
+html.dark .text-primary                  { color: var(--color-primary) !important; }
+html.dark .text-on-primary               { color: var(--color-on-primary) !important; }
+html.dark .text-on-surface               { color: var(--color-on-surface) !important; }
+html.dark .text-on-surface-variant       { color: var(--color-on-surface-variant) !important; }
+html.dark .text-on-secondary-container   { color: var(--color-on-secondary-container) !important; }
+html.dark .text-on-primary-container     { color: var(--color-on-primary-container) !important; }
+html.dark .text-on-error                 { color: var(--color-on-error) !important; }
+html.dark .text-error                    { color: var(--color-error) !important; }
+html.dark .text-on-secondary             { color: var(--color-on-secondary) !important; }
+html.dark .text-secondary                { color: var(--color-secondary) !important; }
+html.dark .text-outline                  { color: var(--color-outline) !important; }
+html.dark .text-outline-variant          { color: var(--color-outline-variant) !important; }
+
+html.dark .border-outline-variant\/30    { border-color: rgba(46, 74, 68, 0.5) !important; }
+html.dark .border-outline-variant        { border-color: var(--color-outline-variant) !important; }
+html.dark .border-outline-variant\/50    { border-color: rgba(46, 74, 68, 0.7) !important; }
+html.dark .border-outline-variant\/40    { border-color: rgba(46, 74, 68, 0.6) !important; }
+html.dark .border-outline-variant\/20    { border-color: rgba(46, 74, 68, 0.35) !important; }
+html.dark .border-error\/20              { border-color: rgba(255, 180, 171, 0.25) !important; }
+html.dark .border-surface-container      { border-color: var(--color-surface-container) !important; }
+html.dark .border-surface-container-highest { border-color: var(--color-surface-container-highest) !important; }
+html.dark .border-secondary\/30          { border-color: rgba(255, 181, 152, 0.3) !important; }
+html.dark .border-primary\/30            { border-color: rgba(160, 200, 190, 0.3) !important; }
+
+/* Body gradient blobs in dark mode */
+html.dark .bg-surface-container-high     { background-color: var(--color-surface-container-high) !important; }
+
+@layer utilities {
+  /* Ambient Texture */
+  .texture-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
 
-  .card-elevated {
-    @apply bg-surface-elevated border border-surface-border rounded-2xl;
+  /* Soft Shadows */
+  .shadow-ambient {
+    box-shadow: 0 20px 40px rgba(45, 67, 61, 0.05);
   }
 
-  .btn-primary {
-    @apply bg-gradient-brand text-white font-semibold px-5 py-2.5 rounded-xl 
-           hover:opacity-90 active:scale-95 transition-all duration-150 
-           disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .btn-secondary {
-    @apply bg-surface-elevated border border-surface-border text-white font-medium 
-           px-5 py-2.5 rounded-xl hover:bg-surface-border transition-all duration-150 
-           disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-
-  .btn-danger {
-    @apply bg-red-500/20 border border-red-500/40 text-red-400 font-medium 
-           px-5 py-2.5 rounded-xl hover:bg-red-500/30 transition-all duration-150;
-  }
-
-  .input {
-    @apply bg-surface-elevated border border-surface-border text-white placeholder-zinc-500 
-           rounded-xl px-4 py-2.5 w-full outline-none focus:ring-2 focus:ring-brand-500 
-           focus:border-transparent transition-all duration-150;
-  }
-
-  .label {
-    @apply text-sm font-medium text-zinc-400 mb-1.5 block;
-  }
-
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
-  }
-
-  .badge-green {
-    @apply badge bg-emerald-500/15 text-emerald-400;
-  }
-
-  .badge-red {
-    @apply badge bg-red-500/15 text-red-400;
-  }
-
-  .badge-yellow {
-    @apply badge bg-yellow-500/15 text-yellow-400;
-  }
-
-  .badge-blue {
-    @apply badge bg-blue-500/15 text-blue-400;
-  }
-
-  .badge-purple {
-    @apply badge bg-purple-500/15 text-purple-400;
-  }
-
-  .page-title {
-    @apply text-2xl font-bold text-white;
-  }
-
-  .section-title {
-    @apply text-lg font-semibold text-white;
-  }
-
-  .text-muted {
-    @apply text-zinc-400;
-  }
-
-  .divider {
-    @apply border-t border-surface-border;
-  }
-
-  .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  html.dark .shadow-ambient {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   }
 }

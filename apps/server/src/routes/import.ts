@@ -1,10 +1,11 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
 import { prisma } from '../db/prisma';
 import { authenticate, AuthRequest } from '../middleware/authenticate';
 import { detectAnomalies } from '../services/anomalyDetector';
 import { computeSplits } from '../services/splitEngine';
+import { getUsdToInrRate } from '../utils/fxRates';
 import { RawImportRow } from '@expense-tracker/shared';
 
 export const importRouter = Router();
@@ -33,8 +34,9 @@ const upload = multer({
  * Accepts a CSV or XLSX file, parses it, runs anomaly detection, and returns
  * the full anomaly report + parsed rows without committing anything to the DB.
  */
-importRouter.post('/preview', upload.single('file'), async (req: AuthRequest, res: Response): Promise<void> => {
-  if (!req.file) {
+importRouter.post('/preview', upload.single('file'), async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.file) {
     res.status(400).json({ success: false, error: 'No file uploaded' });
     return;
   }
@@ -95,6 +97,9 @@ importRouter.post('/preview', upload.single('file'), async (req: AuthRequest, re
       rows, // Send back all rows so client can show them with anomaly highlights
     },
   });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -102,8 +107,9 @@ importRouter.post('/preview', upload.single('file'), async (req: AuthRequest, re
  * Takes a session ID and the user's resolution decisions, then imports
  * approved rows into the expenses table.
  */
-importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<void> => {
-  const { sessionId, groupId, resolutions, rows } = req.body;
+importRouter.post('/commit', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { sessionId, groupId, resolutions, rows } = req.body;
 
   if (!sessionId || !groupId || !resolutions || !rows) {
     res.status(400).json({ success: false, error: 'sessionId, groupId, resolutions, and rows are required' });
@@ -113,12 +119,17 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
   // resolutions: { [rowIndex]: AnomalyResolution }
   const resolutionMap: Map<number, string> = new Map(Object.entries(resolutions).map(([k, v]) => [parseInt(k), v as string]));
 
+  // Pre-fetch memberships to normalize casing
+  const groupMemberships = await prisma.groupMembership.findMany({ where: { groupId } });
+  const caseMap = new Map(groupMemberships.map(m => [m.displayName.toLowerCase(), m.displayName]));
+  const normalizeCasing = (name: string) => caseMap.get(name.toLowerCase()) || name;
+
   const importedExpenses: string[] = [];
   const importedSettlements: string[] = [];
   const skippedRows: number[] = [];
   const importReport: Array<{ rowIndex: number; action: string; description: string }> = [];
 
-  const USD_TO_INR = 83.5; // Fixed rate for historical import; documented in DECISIONS.md
+  const USD_TO_INR = await getUsdToInrRate();
 
   for (const row of rows as RawImportRow[]) {
     const resolution = resolutionMap.get(row.rowIndex) ?? 'KEEP';
@@ -131,12 +142,15 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
 
     // Handle settlement conversion
     if (resolution === 'CONVERT_TO_SETTLEMENT') {
+      const fromName = normalizeCasing(normalizePersonName(row.paid_by ?? 'Unknown'));
+      const toName = normalizeCasing(normalizePersonName(row.split_with ?? 'Unknown'));
+      
       const settlement = await prisma.settlement.create({
         data: {
           groupId,
-          fromMemberName: normalizePersonName(row.paid_by ?? 'Unknown'),
+          fromMemberName: fromName,
           fromMemberId: null,
-          toMemberName: normalizePersonName(row.split_with ?? 'Unknown'),
+          toMemberName: toName,
           toMemberId: null,
           amount: row.amount ?? 0,
           currency: row.currency ?? 'INR',
@@ -146,6 +160,24 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
           note: row.notes ?? undefined,
         },
       });
+
+      for (const name of [fromName, toName]) {
+        if (!caseMap.has(name.toLowerCase())) {
+          const user = await prisma.user.findFirst({
+            where: { name: { equals: name, mode: 'insensitive' } }
+          });
+          const m = await prisma.groupMembership.create({
+            data: {
+              groupId,
+              displayName: name,
+              userId: user?.id ?? null,
+              joinedAt: new Date(),
+            }
+          });
+          caseMap.set(name.toLowerCase(), m.displayName);
+        }
+      }
+
       importedSettlements.push(settlement.id);
       importReport.push({ rowIndex: row.rowIndex, action: 'CONVERTED_TO_SETTLEMENT', description: row.description ?? '' });
       continue;
@@ -154,11 +186,11 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
     // Determine final values after resolution
     const currency = row.currency?.trim() || 'INR';
     const fxRate = currency === 'USD' ? USD_TO_INR : 1;
-    const amount = row.amount ?? 0;
+    const amount = resolution === 'KEEP_AS_ZERO' ? 0 : Math.abs(row.amount ?? 0) * (resolution === 'KEEP_AS_REFUND' ? -1 : 1);
     const amountInr = Math.round(amount * fxRate * 100) / 100;
-    const paidByName = normalizePersonName(row.paid_by ?? 'Unknown');
+    const paidByName = normalizeCasing(normalizePersonName(row.paid_by ?? 'Unknown'));
     const date = safeDate(row.date, resolution);
-    const splitType = (row.split_type ?? 'equal').toLowerCase().trim();
+    const splitType = row.split_type === 'percentage' && resolution === 'NORMALIZE_PERCENTAGES' ? 'percentage' : (row.split_type ?? 'equal').toLowerCase().trim();
 
     // Parse split_with members
     const memberNames = (row.split_with ?? '')
@@ -188,7 +220,7 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
         isRefund: amount < 0,
         splits: {
           create: computedSplits.map((s) => ({
-            memberName: s.memberName,
+            memberName: normalizeCasing(s.memberName),
             memberId: null,
             amount: s.amount,
             shareValue: s.shareValue ?? null,
@@ -197,6 +229,26 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
         },
       },
     });
+
+    // Extract all unique names from this row (case-normalized)
+    const namesInRow = new Set([paidByName, ...computedSplits.map(s => normalizeCasing(s.memberName))]);
+    for (const name of Array.from(namesInRow)) {
+      if (!caseMap.has(name.toLowerCase())) {
+        // Find if they exist as a user to link them automatically
+        const user = await prisma.user.findFirst({
+          where: { name: { equals: name, mode: 'insensitive' } }
+        });
+        const m = await prisma.groupMembership.create({
+          data: {
+            groupId,
+            displayName: name,
+            userId: user?.id ?? null,
+            joinedAt: new Date(),
+          }
+        });
+        caseMap.set(name.toLowerCase(), m.displayName);
+      }
+    }
 
     importedExpenses.push(expense.id);
     importReport.push({ rowIndex: row.rowIndex, action: 'IMPORTED', description: row.description ?? '' });
@@ -225,16 +277,23 @@ importRouter.post('/commit', async (req: AuthRequest, res: Response): Promise<vo
       importReport,
     },
   });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // GET /api/import/sessions/:groupId
-importRouter.get('/sessions/:groupId', async (req: AuthRequest, res: Response): Promise<void> => {
-  const sessions = await prisma.importSession.findMany({
-    where: { groupId: req.params.groupId },
-    include: { anomalies: true },
-    orderBy: { createdAt: 'desc' },
-  });
-  res.json({ success: true, data: sessions });
+importRouter.get('/sessions/:groupId', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const sessions = await prisma.importSession.findMany({
+      where: { groupId: req.params.groupId },
+      include: { anomalies: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: sessions });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -276,8 +335,20 @@ function normalizePersonName(name: string): string {
   return name.trim().replace(/\s+/g, ' ');
 }
 
+const resolutionMessages: Record<string, string> = {
+  'CONVERT_TO_SETTLEMENT': 'Automatically converted to settlement',
+  'FIX_DATE': 'Invalid date automatically fixed',
+  'FIX_CURRENCY': 'Missing currency defaulted to INR',
+  'KEEP_AS_REFUND': 'Processed as a refund',
+  'KEEP_AS_ZERO': 'Processed as a zero-amount expense',
+  'NORMALIZE_PERCENTAGES': 'Percentages normalized to sum to 100%',
+  'SKIP': 'Duplicate skipped',
+  'PENDING': 'Pending manual review',
+};
+
 function buildNotes(original: string | null, resolution: string): string | undefined {
-  const parts = [original, resolution !== 'KEEP' ? `[Import: ${resolution}]` : null].filter(Boolean);
+  const humanResolution = resolutionMessages[resolution] || resolution;
+  const parts = [original, resolution !== 'KEEP' ? `Import note: ${humanResolution}` : null].filter(Boolean);
   return parts.length > 0 ? parts.join(' | ') : undefined;
 }
 

@@ -1,4 +1,12 @@
 import 'dotenv/config';
+
+// Prevent server from crashing on unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+  console.error('[UnhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[UncaughtException]', err);
+});
 import express from 'express';
 import cors from 'cors';
 import { authRouter } from './routes/auth';
@@ -7,6 +15,7 @@ import { expensesRouter } from './routes/expenses';
 import { settlementsRouter } from './routes/settlements';
 import { balancesRouter } from './routes/balances';
 import { importRouter } from './routes/import';
+import { activityRouter } from './routes/activity';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -27,6 +36,7 @@ app.use('/api/expenses', expensesRouter);
 app.use('/api/settlements', settlementsRouter);
 app.use('/api/balances', balancesRouter);
 app.use('/api/import', importRouter);
+app.use('/api/activity', activityRouter);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

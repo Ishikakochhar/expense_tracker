@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../db/prisma';
 
 export interface AuthRequest extends Request {
   userId?: string;
   userEmail?: string;
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,6 +22,14 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     if (!secret) throw new Error('JWT_SECRET not configured');
 
     const payload = jwt.verify(token, secret) as { userId: string; email: string };
+    
+    // Verify user still exists in DB
+    const userExists = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!userExists) {
+      res.status(401).json({ success: false, error: 'User no longer exists' });
+      return;
+    }
+
     req.userId = payload.userId;
     req.userEmail = payload.email;
     next();

@@ -15,9 +15,9 @@ export function BalancesPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-surface-elevated rounded-xl" />
-        <div className="h-48 bg-surface-elevated rounded-2xl" />
+      <div className="space-y-4 animate-pulse max-w-3xl mx-auto">
+        <div className="h-10 w-48 bg-surface-container rounded-full" />
+        <div className="h-48 bg-surface-container-lowest rounded-xl" />
       </div>
     );
   }
@@ -27,99 +27,109 @@ export function BalancesPage() {
   const breakdown = data?.memberExpenseBreakdown ?? {};
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <h1 className="page-title">Balances</h1>
+    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+      <h1 className="font-display-lg text-3xl md:text-4xl text-primary leading-tight">Balances</h1>
 
       {/* Settlement summary (Aisha's view: "one number per person") */}
-      <div className="card p-6">
-        <h2 className="section-title mb-1">Who Pays Whom</h2>
-        <p className="text-muted text-sm mb-5">Minimum number of payments to settle all debts</p>
+      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-ambient p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
+        <div className="relative z-10">
+          <h2 className="font-headline-md text-2xl text-primary mb-1">Who Pays Whom</h2>
+          <p className="font-body-md text-on-surface-variant mb-6">Minimum number of payments to settle all debts</p>
 
-        {transactions.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="w-6 h-6 text-emerald-400" />
-            </div>
-            <p className="text-white font-semibold">All settled up!</p>
-            <p className="text-muted text-sm mt-1">No outstanding payments.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {transactions.map((t: any, i: number) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-surface-elevated border border-surface-border">
-                <div className="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center text-sm font-bold text-red-300">
-                  {t.fromMemberName.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium">
-                    <span className="text-red-300">{t.fromMemberName}</span>
-                    {' → '}
-                    <span className="text-emerald-300">{t.toMemberName}</span>
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-zinc-600" />
-                <p className="font-bold text-white">₹{t.amount.toFixed(2)}</p>
+          {transactions.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <TrendingUp className="w-8 h-8 text-on-primary-container" />
               </div>
-            ))}
-          </div>
-        )}
+              <p className="font-headline-md text-xl text-primary">All settled up!</p>
+              <p className="font-body-md text-on-surface-variant mt-2">No outstanding payments.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {transactions.map((t: any, i: number) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-surface border border-outline-variant/30">
+                  <div className="w-10 h-10 rounded-full bg-error-container flex items-center justify-center font-headline-md font-bold text-on-error-container shadow-sm">
+                    {t.fromMemberName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body-lg text-primary">
+                      <span className="font-bold text-error">{t.fromMemberName}</span>
+                      <span className="text-on-surface-variant px-2">→</span>
+                      <span className="font-bold text-primary">{t.toMemberName}</span>
+                    </p>
+                  </div>
+                  <p className="font-display-lg text-xl text-primary">₹{t.amount.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Net balances per member */}
-      <div className="card p-6">
-        <h2 className="section-title mb-5">Net Balances</h2>
-        <div className="space-y-2">
-          {balances.map((b: any) => (
-            <div key={b.memberName}>
-              <button
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-elevated transition-colors"
-                onClick={() => setExpandedMember(expandedMember === b.memberName ? null : b.memberName)}
-              >
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${
-                    b.net > 0 ? 'bg-emerald-500/20' : b.net < 0 ? 'bg-red-500/20' : 'bg-surface-elevated'
-                  }`}
+      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-ambient p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
+        <div className="relative z-10">
+          <h2 className="font-headline-md text-2xl text-primary mb-6">Net Balances</h2>
+          <div className="space-y-2">
+            {balances.map((b: any) => (
+              <div key={b.memberName}>
+                <button
+                  className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-surface-container/50 transition-colors"
+                  onClick={() => setExpandedMember(expandedMember === b.memberName ? null : b.memberName)}
                 >
-                  {b.memberName.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="font-medium text-white text-sm">{b.memberName}</p>
-                  <p className={`text-xs font-semibold ${b.net > 0 ? 'text-emerald-400' : b.net < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                    {b.net > 0 ? `Gets back ₹${b.net.toFixed(2)}` : b.net < 0 ? `Owes ₹${Math.abs(b.net).toFixed(2)}` : 'Settled'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {b.net > 0 ? (
-                    <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  ) : b.net < 0 ? (
-                    <TrendingDown className="w-4 h-4 text-red-400" />
-                  ) : (
-                    <Minus className="w-4 h-4 text-zinc-500" />
-                  )}
-                  {breakdown[b.memberName] && (
-                    expandedMember === b.memberName
-                      ? <ChevronDown className="w-4 h-4 text-zinc-500" />
-                      : <ChevronRight className="w-4 h-4 text-zinc-500" />
-                  )}
-                </div>
-              </button>
-
-              {/* Expense breakdown drill-down (Rohan's request) */}
-              {expandedMember === b.memberName && breakdown[b.memberName] && (
-                <div className="ml-12 mt-1 mb-2 space-y-1 animate-slide-up">
-                  {breakdown[b.memberName].map((item: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-surface-elevated/50 text-sm">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-zinc-300 truncate">{item.description}</p>
-                        <p className="text-zinc-600 text-xs">{new Date(item.date).toLocaleDateString('en-IN')}</p>
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-headline-md font-bold text-lg shadow-sm ${
+                      b.net > 0 ? 'bg-primary-container text-on-primary-container' : b.net < 0 ? 'bg-error-container text-on-error-container' : 'bg-surface-dim text-on-surface-variant'
+                    }`}
+                  >
+                    {b.memberName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-headline-md text-lg text-primary truncate">{b.memberName}</p>
+                    <p className={`font-data-mono text-sm ${b.net > 0 ? 'text-primary' : b.net < 0 ? 'text-error' : 'text-on-surface-variant'}`}>
+                      {b.net > 0 ? `Gets back ₹${b.net.toFixed(2)}` : b.net < 0 ? `Owes ₹${Math.abs(b.net).toFixed(2)}` : 'Settled'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {b.net > 0 ? (
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                    ) : b.net < 0 ? (
+                      <TrendingDown className="w-5 h-5 text-error" />
+                    ) : (
+                      <Minus className="w-5 h-5 text-on-surface-variant" />
+                    )}
+                    {breakdown[b.memberName] && (
+                      <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center">
+                        {expandedMember === b.memberName
+                          ? <ChevronDown className="w-5 h-5 text-primary" />
+                          : <ChevronRight className="w-5 h-5 text-on-surface-variant" />
+                        }
                       </div>
-                      <p className="text-zinc-400 font-medium ml-3">₹{item.amount.toFixed(2)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                    )}
+                  </div>
+                </button>
+
+                {/* Expense breakdown drill-down (Rohan's request) */}
+                {expandedMember === b.memberName && breakdown[b.memberName] && (
+                  <div className="ml-16 mt-2 mb-4 space-y-2 animate-slide-up relative">
+                    {/* Left border for visual grouping */}
+                    <div className="absolute left-[-24px] top-2 bottom-2 w-px bg-outline-variant/50"></div>
+                    {breakdown[b.memberName].map((item: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between py-2 px-4 rounded-lg bg-surface border border-outline-variant/30">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="font-body-md text-primary truncate">{item.description}</p>
+                          <p className="font-body-md text-on-surface-variant text-xs">{new Date(item.date).toLocaleDateString('en-IN')}</p>
+                        </div>
+                        <p className="font-data-mono text-sm text-primary">₹{item.amount.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

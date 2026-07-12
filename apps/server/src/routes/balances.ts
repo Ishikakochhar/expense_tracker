@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../db/prisma';
 import { authenticate, AuthRequest } from '../middleware/authenticate';
 import { minimizeTransactions, RawBalance } from '../services/balanceEngine';
@@ -6,9 +6,77 @@ import { minimizeTransactions, RawBalance } from '../services/balanceEngine';
 export const balancesRouter = Router();
 balancesRouter.use(authenticate);
 
+// GET /api/balances/global
+balancesRouter.get('/global', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.userId!;
+
+    const memberships = await prisma.groupMembership.findMany({
+      where: { userId, leftAt: null },
+      select: { groupId: true, user: { select: { name: true } } },
+    });
+
+    const groupIds = memberships.map((m) => m.groupId);
+
+    if (groupIds.length === 0) {
+      res.json({ success: true, data: { balances: [], transactions: [], memberExpenseBreakdown: {} } });
+      return;
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where: { groupId: { in: groupIds } },
+      include: { splits: true },
+    });
+
+    const settlements = await prisma.settlement.findMany({
+      where: { groupId: { in: groupIds } },
+    });
+
+    const balanceMap: Map<string, number> = new Map();
+    const addBalance = (name: string, delta: number) => {
+      balanceMap.set(name, Math.round(((balanceMap.get(name) ?? 0) + delta) * 100) / 100);
+    };
+
+    for (const expense of expenses) {
+      const payer = expense.paidByName;
+      for (const split of expense.splits) {
+        const participant = split.memberName;
+        if (participant !== payer) {
+          addBalance(participant, -split.amount);
+          addBalance(payer, split.amount);
+        }
+      }
+    }
+
+    for (const settlement of settlements) {
+      addBalance(settlement.fromMemberName, settlement.amountInr);
+      addBalance(settlement.toMemberName, -settlement.amountInr);
+    }
+
+    const rawBalances: RawBalance[] = Array.from(balanceMap.entries()).map(([memberName, net]) => ({
+      memberName,
+      net: Math.round(net * 100) / 100,
+    }));
+
+    const transactions = minimizeTransactions(rawBalances);
+
+    res.json({
+      success: true,
+      data: {
+        balances: rawBalances,
+        transactions,
+        memberExpenseBreakdown: {}, // Keep empty for global for now to save payload size
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/balances/:groupId
-balancesRouter.get('/:groupId', async (req: AuthRequest, res: Response): Promise<void> => {
-  const { groupId } = req.params;
+balancesRouter.get('/:groupId', async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { groupId } = req.params;
 
   // Fetch all expenses with splits
   const expenses = await prisma.expense.findMany({
@@ -107,12 +175,15 @@ balancesRouter.get('/:groupId', async (req: AuthRequest, res: Response): Promise
     }
   }
 
-  res.json({
-    success: true,
-    data: {
-      balances: rawBalances,
-      transactions,
-      memberExpenseBreakdown,
-    },
-  });
+    res.json({
+      success: true,
+      data: {
+        balances: rawBalances,
+        transactions,
+        memberExpenseBreakdown,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });

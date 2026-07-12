@@ -1,118 +1,101 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, LogOut, Receipt, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Home, Activity, Users, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/groups', label: 'Groups', icon: Users },
-];
+import { useI18n } from '@/hooks/useI18n';
 
 export function AppLayout() {
-  const { user, clearAuth } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const { t } = useI18n();
 
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/login');
-  };
+  const navItems = [
+    { to: '/', label: t('nav.home'), icon: Home, end: true },
+    { to: '/activity', label: t('nav.activity'), icon: Activity },
+    { to: '/groups', label: t('nav.groups'), icon: Users },
+    { to: '/settings', label: t('nav.settings'), icon: Settings },
+  ];
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar overlay (mobile) */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <div className="flex min-h-screen bg-surface text-on-surface antialiased w-full relative">
+      {/* Removed texture overlay */}
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed top-0 left-0 h-full w-64 bg-surface-card border-r border-surface-border z-30
-          flex flex-col transition-transform duration-300
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:z-auto
-        `}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-surface-border">
-          <div className="w-9 h-9 rounded-xl bg-gradient-brand flex items-center justify-center">
-            <Receipt className="w-5 h-5 text-white" />
+      {/* Top Navigation (Mobile Only) */}
+      <header className="md:hidden bg-surface flex justify-between items-center w-full px-container-padding-mobile py-4 fixed top-0 z-40 border-b border-surface-variant/50">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+          <img src="/logo.png" alt="The Hearth" className="w-8 h-8 rounded-xl object-cover" />
+          <span className="font-headline-md text-xl font-semibold text-primary">The Hearth</span>
+        </div>
+      </header>
+
+      {/* Side Navigation (Desktop Only) */}
+      <aside className="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest flex-col p-6 shadow-[20px_0_40px_rgba(45,67,61,0.05)] z-40 border-r border-outline-variant/30">
+        <div className="mb-8">
+          <div className="font-headline-md text-2xl font-bold text-primary mb-8 cursor-pointer flex items-center gap-3" onClick={() => navigate('/')}>
+             <img src="/logo.png" alt="The Hearth" className="w-9 h-9 rounded-xl object-cover shadow-sm" />
+             The Hearth
           </div>
-          <div>
-            <p className="font-bold text-white leading-tight">SplitWise</p>
-            <p className="text-xs text-zinc-500">Expense Tracker</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold font-headline-md shadow-sm border border-outline-variant/30">
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="overflow-hidden">
+              <h2 className="font-label-sm text-primary truncate">{t('common.welcomeBack')} {user?.name?.split(' ')[0]}</h2>
+              <p className="font-body-md text-on-surface-variant text-sm truncate">{t('common.yourSharedHome')}</p>
+            </div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+        <nav className="flex-1 space-y-2 mt-4">
+          {navItems.map(({ to, label, icon: Icon, end }) => {
+            const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive: isExactActive }) =>
+                  `flex items-center gap-4 px-6 py-3 rounded-full font-label-sm transition-all duration-200 ${
+                    isActive
+                      ? 'bg-secondary-container text-on-secondary-container font-bold shadow-sm'
+                      : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
+                  }`
+                }
+              >
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Main Content Canvas */}
+      <main className="flex-1 w-full md:ml-64 pt-20 md:pt-6 px-container-padding-mobile md:px-container-padding-desktop pb-24 md:pb-12 max-w-[1100px] mx-auto min-h-screen relative z-10 animate-fade-in">
+        <Outlet />
+      </main>
+
+      {/* Bottom Navigation (Mobile Only) */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-surface-container-lowest border-t border-tertiary-fixed shadow-[0_-10px_20px_rgba(45,67,61,0.05)] z-50 px-6 py-3 flex justify-between items-center pb-[max(env(safe-area-inset-bottom),12px)]">
+        {navItems.map(({ to, label, icon: Icon, end }) => {
+          const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+          return (
             <NavLink
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium transition-all duration-150 ${
-                  isActive
-                    ? 'bg-brand-600/20 text-brand-400 border border-brand-600/30'
-                    : 'text-zinc-400 hover:text-white hover:bg-surface-elevated'
-                }`
-              }
-              onClick={() => setSidebarOpen(false)}
+              className={`flex flex-col items-center gap-1.5 transition-colors ${
+                isActive ? 'text-primary' : 'text-on-surface-variant'
+              }`}
             >
-              <Icon className="w-5 h-5" />
-              {label}
+              <div className={`p-1 rounded-full ${isActive ? 'bg-secondary-container/20' : ''}`}>
+                <Icon className={`w-6 h-6 ${isActive ? 'fill-secondary-container/20 stroke-primary' : ''}`} />
+              </div>
+              <span className={`font-label-sm text-[10px] ${isActive ? 'font-bold' : ''}`}>{label}</span>
             </NavLink>
-          ))}
-        </nav>
-
-        {/* User */}
-        <div className="p-4 border-t border-surface-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-brand flex items-center justify-center text-white font-bold text-sm">
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-              <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-4 py-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 text-sm font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar (mobile) */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-surface-border bg-surface-card sticky top-0 z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-brand flex items-center justify-center">
-              <Receipt className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white">SplitWise</span>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-surface-elevated transition-all"
-          >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </header>
-
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full animate-fade-in">
-          <Outlet />
-        </main>
-      </div>
+          );
+        })}
+      </nav>
     </div>
   );
 }

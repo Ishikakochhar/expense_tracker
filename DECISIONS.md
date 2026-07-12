@@ -125,3 +125,93 @@
 - Soft-flag as anomaly ← chosen
 
 **Reason**: Sam's request is valid (March electricity shouldn't affect him), but implementing hard blocks on historical data import would reject legitimate rows. The stale-member anomaly is surfaced to the user who can then remove the member from the split manually.
+
+---
+
+## D11: Case-Insensitive Name Matching Everywhere
+
+**Decision**: All member name lookups use Prisma's `mode: 'insensitive'` and all in-memory comparisons use `.toLowerCase()`.
+
+**Options considered**:
+- Normalize to lowercase on write (would break display names)
+- Case-sensitive exact match (leads to duplicate members like "Rohan" and "rohan")
+- Case-insensitive read-time matching ← chosen
+
+**Reason**: A user reported that "rohan" created a brand new person separate from "Rohan". This is a data integrity issue — the display name is preserved as typed but lookups are done case-insensitively so the same person is never duplicated.
+
+---
+
+## D12: Unregistered Member Claiming at Group Join
+
+**Decision**: When a new user joins a group via invite code, show them a list of unclaimed `GroupMembership` slots (non-null `displayName`, null `userId`) and let them claim one or register fresh.
+
+**Options considered**:
+- Auto-match by email (no email on memberships, not feasible)
+- Always create a new membership ← rejected (creates phantoms)
+- Offer claim UI on join flow ← chosen
+
+**Reason**: Groups imported from CSV have many members who aren't registered users. Without this flow, a user named "Priya" who signs up can't associate herself with the "Priya" already in the group's expense history. The claim flow solves this in one step.
+
+---
+
+## D13: Global Settlement from Dashboard (Cross-Group)
+
+**Decision**: Settlement records are still scoped to a single group, but the UI for initiating a settlement can live on the global dashboard.
+
+**Options considered**:
+- Force users to navigate into each group to settle up
+- Build a "global settlement" that creates multi-group records ← rejected (too complex)
+- Global trigger, but resolve to one group ← chosen
+
+**Reason**: The user said *"also make me be able to click any one of these from the home page only to settle"*. The `GlobalSettleModal` finds all groups shared between two people and asks the user to confirm which one the payment belongs to. One click from the dashboard, no context switching.
+
+---
+
+## D14: Native `<select>` Styled with CSS, Not a Custom Component
+
+**Decision**: Use native `<select>` with `appearance-none` and an inline SVG chevron via `background-image` in global CSS.
+
+**Options considered**:
+- Headless UI / Radix Select (full accessibility, but adds bundle weight and complexity)
+- Custom React dropdown with Portal (flexible but lots of keyboard/a11y code to write)
+- Native `<select>` + global CSS override ← chosen
+
+**Reason**: User flagged: *"why are the options menu standard rectangle dropdown make them match our theme"*. Native selects are fully accessible and mobile-friendly by default. Stripping default appearance with global CSS gives full visual control and applies instantly across every dropdown in the app with ~6 lines of CSS.
+
+---
+
+## D15: Activity Log Filtering — Personal vs Group-Level
+
+**Decision**: The global `/api/activity` feed filters to only items involving the current user by name. Passing `?groupId=` returns the full unfiltered log for that group.
+
+**Options considered**:
+- Always return all activity across all groups (too noisy)
+- Always filter by user (loses group-level audit trail)
+- Filter by user globally; scope to group when `groupId` is provided ← chosen
+
+**Reason**: User said *"in this activity log only show logs related to you, and show the complete log of the group, somewhere within the group only."* One backend endpoint handles both cases. The `GroupDetailPage` has an "Activity" tab that calls the endpoint with `?groupId=` to show the full group timeline.
+
+---
+
+## D16: Live FX Rate via External API (Cached)
+
+**Decision**: Fetch the live USD → INR rate from `open.er-api.com` at import time, cached in memory for 1 hour.
+
+**Options considered**:
+- Hardcoded fixed rate (simple, but stale — was using ₹83.5 while real rate was ₹95.5)
+- User-entered rate per expense
+- Live API with in-process cache ← chosen
+
+**Reason**: The hardcoded rate had drifted significantly from reality. A live fetch ensures accuracy. The 1-hour in-memory cache prevents hammering the free-tier API on every import row. A 5-second timeout + graceful fallback ensures the import never fails just because the FX service is down.
+
+---
+
+## D17: Custom PNG Logo Over Lucide Icon
+
+**Decision**: Use the provided `logo.png` image in the sidebar and mobile header, and as the browser favicon / Apple touch icon.
+
+**Options considered**:
+- Keep Lucide `Receipt` icon as the brand mark
+- Use the PNG logo everywhere ← chosen
+
+**Reason**: A real logo communicates product identity. The PNG is served from `public/` so it's always available at `/logo.png` with zero import overhead. The theme-color meta tag was updated to `#e8622a` to match the logo's orange on mobile browsers.
