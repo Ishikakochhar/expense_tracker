@@ -42,8 +42,15 @@ groupsRouter.post('/', async (req: AuthRequest, res: Response, next: NextFunctio
 
     const { name, defaultCurrency, memberNames } = parse.data;
 
+    // Generate a 6-character uppercase alphanumeric join code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let joinCode = '';
+    for (let i = 0; i < 6; i++) {
+      joinCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
     const group = await prisma.$transaction(async (tx) => {
-      const newGroup = await tx.group.create({ data: { name, defaultCurrency } });
+      const newGroup = await tx.group.create({ data: { name, defaultCurrency, joinCode } });
 
       // Add the creator as the first member
       const creator = await tx.user.findUnique({ where: { id: req.userId } });

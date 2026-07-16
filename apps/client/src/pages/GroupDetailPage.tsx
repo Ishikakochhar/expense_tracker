@@ -88,15 +88,16 @@ export function GroupDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-headline-md text-headline-md text-primary">Members</h2>
               {group.joinCode && (
-                <div className="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant/30 group/code" title="Copy join code">
+                <div 
+                  className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high cursor-pointer px-3 py-1.5 rounded-full border border-outline-variant/30 group/code transition-colors" 
+                  title="Copy join code"
+                  onClick={() => { navigator.clipboard.writeText(group.joinCode); toast.success('Code copied to clipboard!'); }}
+                >
                   <span className="font-label-sm text-on-surface-variant text-xs">Code:</span>
                   <span className="font-data-mono font-bold text-primary text-sm">{group.joinCode}</span>
-                  <button 
-                    onClick={() => { navigator.clipboard.writeText(group.joinCode); toast.success('Code copied to clipboard!'); }}
-                    className="text-on-surface-variant hover:text-primary transition-colors"
-                  >
+                  <div className="text-on-surface-variant group-hover/code:text-primary transition-colors">
                     <Copy className="w-3.5 h-3.5" />
-                  </button>
+                  </div>
                 </div>
               )}
             </div>
